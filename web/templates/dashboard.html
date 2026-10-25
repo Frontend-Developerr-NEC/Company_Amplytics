@@ -1,0 +1,228 @@
+{% extends "layout_app.html" %}
+{% block title %}Dashboard · Amplytics{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+{% block content %}
+<div class="space-y-6">
+
+  <div class="dashboard-heading flex items-start justify-between gap-4 flex-wrap">
+    <div>
+      <h1 class="text-2xl font-semibold text-slate-900">Dashboard</h1>
+      <p class="text-sm text-slate-500 mt-1">
+        {{ period.period_start_date|billing_period_label(period.period_end_date) }} · {{ p_start }} → {{ p_end }} · as of {{ effective_today }}
+      </p>
+    </div>
+    <form method="get" action="/dashboard" class="dashboard-filters flex items-center gap-3 flex-wrap">
+      <label class="text-sm text-slate-600">Period</label>
+      <select name="bp_id" onchange="this.form.submit()"
+              class="border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm">
+        {% for p in periods %}
+        <option value="{{ p.billing_period_id }}" {% if p.billing_period_id == period.billing_period_id %}selected{% endif %}>
+          {{ p.period_start_date|billing_period_label(p.period_end_date) }}
+        </option>
+        {% endfor %}
+      </select>
+      <label class="text-sm text-slate-600" for="today-date">Today date</label>
+      <input id="today-date" type="date" name="today"
+             min="{{ p_start }}" max="{{ p_end }}" value="{{ effective_today }}"
+             onchange="this.form.submit()"
+             class="border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm">
+    </form>
+  </div>
+
+  {# KPI cards #}
+  <div class="dashboard-kpis grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <p class="text-xs uppercase tracking-wider text-slate-500">Cumulative usage</p>
+      <p class="text-2xl font-semibold text-slate-900 mt-2">{{ "%.2f"|format(summary.cumulative_including_today) }} <span class="text-sm text-slate-500">kWh</span></p>
+      <p class="text-xs text-slate-500 mt-1">
+        Measured {{ "%.2f"|format(summary.measured_cumulative_units) }}
+        · Estimated {{ "%.2f"|format(summary.estimated_cumulative_units) }}
+        · Predicted {{ "%.2f"|format(summary.predicted_cumulative_units) }}
+      </p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <p class="text-xs uppercase tracking-wider text-slate-500">Target</p>
+      <p class="text-2xl font-semibold text-slate-900 mt-2">{{ "%.2f"|format(summary.target_units) }} <span class="text-sm text-slate-500">kWh</span></p>
+      <p class="text-xs text-slate-500 mt-1">{{ summary.elapsed_days_including_today }} of {{ summary.period_days }} days elapsed</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <p class="text-xs uppercase tracking-wider text-slate-500">Remaining target</p>
+      <p class="text-2xl font-semibold {% if summary.target_exceeded %}text-red-600{% else %}text-slate-900{% endif %} mt-2">
+        {{ "%.2f"|format(summary.remaining_target_units) }} <span class="text-sm text-slate-500">kWh</span>
+      </p>
+      {% if summary.excess_units > 0 %}
+      <p class="text-xs text-red-600 mt-1">Excess: {{ "%.2f"|format(summary.excess_units) }} kWh</p>
+      {% else %}
+      <p class="text-xs text-slate-500 mt-1">{{ "%.1f"|format(summary.percent_target_consumed) }}% of target used</p>
+      {% endif %}
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <p class="text-xs uppercase tracking-wider text-slate-500">Days remaining (incl. today)</p>
+      <p class="text-2xl font-semibold text-slate-900 mt-2">{{ summary.days_remaining_including_today }}</p>
+      <p class="text-xs text-slate-500 mt-1">Avg so far {{ "%.2f"|format(summary.average_daily_units) }} kWh/day</p>
+    </div>
+    <!-- <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <p class="text-xs uppercase tracking-wider text-slate-500">Estimated cumulative electricity charge</p>
+      <p class="text-2xl font-semibold text-slate-900 mt-2">₹{{ "%.2f"|format(electricity_bill_estimate) }}</p>
+      <p class="text-xs text-slate-500 mt-1">
+        Through {{ effective_today }} · excludes fixed charges and taxes
+      </p>
+    </div> -->
+  </div>
+
+  {# Progress bar #}
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+    <div class="flex justify-between text-sm mb-2">
+      <span class="font-medium text-slate-700">Target consumption</span>
+      <span class="text-slate-500">{{ "%.1f"|format(summary.percent_target_consumed) }}%</span>
+    </div>
+    <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+      <div class="h-3 rounded-full {% if summary.target_exceeded %}bg-red-500{% elif summary.percent_target_consumed > 80 %}bg-amber-500{% else %}bg-indigo-500{% endif %}"
+           style="width: {{ [summary.percent_target_consumed, 100] | min }}%"></div>
+    </div>
+    <div class="mt-2 flex justify-between text-xs text-slate-500">
+      <span>{{ "%.2f"|format(summary.cumulative_including_today) }} kWh used</span>
+      <span>{{ "%.2f"|format(summary.target_units) }} kWh target</span>
+    </div>
+  </div>
+
+  {# Allowance #}
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <p class="text-xs uppercase tracking-wider text-slate-500">Today's pace allowance</p>
+      <p class="text-xl font-semibold text-slate-900 mt-2">{{ "%.2f"|format(summary.todays_target_pace_allowance) }} kWh</p>
+      <p class="text-xs text-slate-500 mt-1">Target ÷ days remaining</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <p class="text-xs uppercase tracking-wider text-slate-500">Remaining allowance today</p>
+      <p class="text-xl font-semibold text-slate-900 mt-2">{{ "%.2f"|format(summary.remaining_allowance_today) }} kWh</p>
+      <p class="text-xs text-slate-500 mt-1">Guideline, not a guarantee</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <p class="text-xs uppercase tracking-wider text-slate-500">Units used today</p>
+      <p class="text-xl font-semibold text-slate-900 mt-2">{{ "%.2f"|format(summary.units_today) }} kWh</p>
+      <p class="text-xs text-slate-500 mt-1">Reported so far</p>
+    </div>
+  </div>
+
+  {# Baseline vs ML #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h2 class="font-semibold text-slate-900">Baseline projection</h2>
+      <p class="text-xs text-slate-500 mb-3">Rule-based, uses average daily × period days.</p>
+      <p class="text-2xl font-semibold text-slate-900">{{ "%.2f"|format(summary.baseline_projected_final_units) }} <span class="text-sm text-slate-500">kWh</span></p>
+      <p class="text-sm text-slate-600 mt-2">Projected final energy charge: <b>₹{{ "%.2f"|format(projected_final_bill_estimate) }}</b></p>
+      {% if summary.baseline_projected_final_units > summary.target_units %}
+      <p class="text-sm text-amber-700 mt-2">Above your target by {{ "%.2f"|format(summary.baseline_projected_final_units - summary.target_units) }} kWh.</p>
+      {% else %}
+      <p class="text-sm text-emerald-700 mt-2">Below your target.</p>
+      {% endif %}
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h2 class="font-semibold text-slate-900">ML prediction <span class="text-xs font-normal text-slate-500">(estimate)</span></h2>
+      {% if ml_final is not none %}
+      <p class="text-xs text-slate-500 mb-3">HistGradientBoostingRegressor on saved model. Not a confirmed bill.</p>
+      <p class="text-2xl font-semibold text-slate-900">{{ "%.2f"|format(ml_final) }} <span class="text-sm text-slate-500">kWh</span></p>
+      <p class="text-sm text-slate-600 mt-2">HistGradientBoostingClassifier exceedance probability: <b>{{ "%.1f"|format((ml_proba or 0) * 100) }}%</b></p>
+      <p class="text-xs text-slate-400 mt-2">Model source: {{ model_meta.get("data_source") if model_meta else "—" }} · trained {{ model_meta.get("trained_at") if model_meta else "—" }}</p>
+      {% else %}
+      <p class="text-sm text-slate-500 mt-3">Models not trained yet. Run <code>python -m scripts.train_models</code>.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Alerts #}
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-3">
+    <h2 class="font-semibold text-slate-900">Alerts &amp; warnings</h2>
+    <p class="text-xs uppercase tracking-wider text-slate-500">Rule-based</p>
+    {% if not rule_alerts %}
+    <p class="text-sm text-emerald-700">No rule-based alerts.</p>
+    {% endif %}
+    {% for a in rule_alerts %}
+      {% set cls = "border-red-200 bg-red-50 text-red-900" if a.level == "danger"
+                else "border-amber-200 bg-amber-50 text-amber-900" if a.level == "warning"
+                else "border-slate-200 bg-slate-50 text-slate-800" %}
+      <div class="border rounded-lg px-4 py-3 text-sm {{ cls }}">
+        <b>{{ a.title }}</b> — {{ a.message }}
+      </div>
+    {% endfor %}
+
+    {% if ml_alert_obj %}
+    <p class="text-xs uppercase tracking-wider text-slate-500 mt-2">ML estimate</p>
+    {% set mcls = "border-amber-300 bg-amber-50 text-amber-900" if ml_alert_obj.level == "ml_warning" else "border-slate-200 bg-slate-50 text-slate-800" %}
+    <div class="border rounded-lg px-4 py-3 text-sm {{ mcls }}">
+      <b>{{ ml_alert_obj.title }}</b> — {{ ml_alert_obj.message }}
+    </div>
+    {% endif %}
+  </div>
+
+  {# Chart #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="flex items-start justify-between gap-2 mb-3 flex-wrap">
+        <h2 class="font-semibold text-slate-900">Daily consumption</h2>
+        <p class="text-xs text-slate-500">
+          Actual vs predicted (missing)
+          {% if missing_count %}· {{ missing_count }} day{{ "s" if missing_count != 1 }} filled from history, else target pace{% endif %}
+        </p>
+      </div>
+      <div class="h-64"><canvas id="dailyChart"></canvas></div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h2 class="font-semibold text-slate-900 mb-3">Cumulative vs target pace</h2>
+      <div class="h-64"><canvas id="cumulativeChart"></canvas></div>
+    </div>
+  </div>
+
+  {# Records #}
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-200">
+      <h2 class="font-semibold text-slate-900">Daily records <span class="text-sm font-normal text-slate-500">(as of {{ effective_today }})</span></h2>
+    </div>
+    <div class="table-scroll">
+    <table class="responsive-table responsive-table--dashboard w-full text-sm">
+      <thead class="bg-slate-50 text-slate-600 text-left text-xs uppercase tracking-wider">
+        <tr>
+          <th class="px-4 py-3">Date</th>
+          <th class="px-4 py-3 text-right">Units (kWh)</th>
+          <th class="px-4 py-3">Source</th>
+          <th class="px-4 py-3">Type</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in chart_payload.records %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3">{{ r.date }}</td>
+          <td class="px-4 py-3 text-right">{{ "%.2f"|format(r.units) }}</td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs
+              {% if r.source == 'predicted' %}bg-violet-100 text-violet-800{% else %}bg-slate-100 text-slate-800{% endif %}">
+              {% if r.source == 'predicted' %}predicted (missing){% else %}actual{% endif %}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs
+              {% if r.data_type == 'measured' %}bg-emerald-100 text-emerald-800
+              {% elif r.data_type == 'predicted' %}bg-violet-100 text-violet-800
+              {% else %}bg-amber-100 text-amber-800{% endif %}">
+              {{ r.data_type }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">No records yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<script id="chart-data" type="application/json">{{ chart_payload|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

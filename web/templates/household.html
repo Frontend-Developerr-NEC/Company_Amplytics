@@ -1,0 +1,55 @@
+{% extends "layout_app.html" %}
+{% block title %}Household · Amplytics{% endblock %}
+{% block breadcrumb %}Household{% endblock %}
+{% block content %}
+<div class="space-y-6 max-w-xl">
+  <div>
+    <h1 class="text-2xl font-semibold text-slate-900">Household</h1>
+    <p class="text-sm text-slate-500 mt-1">Update your household profile. The household ID cannot be changed.</p>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+    <form method="post" action="/household/update" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Household ID</label>
+        <input type="text" value="{{ user.user_id }}" disabled
+               class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Household name</label>
+        <input name="display_name" required value="{{ user.display_name }}"
+               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Email (optional)</label>
+        <input name="email" type="email" value="{{ user.email or '' }}"
+               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Household Members Size</label>
+        <input name="household_size" type="number" min="1" max="20" required
+               value="{{ user.household_size }}"
+               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg">
+        Save changes
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-red-200 p-6">
+    <h2 class="font-semibold text-slate-900">Delete household</h2>
+    <p class="text-sm text-slate-500 mt-1 mb-4">
+      Permanently removes this household and all of its billing periods, daily
+      consumption records, and appliances. This cannot be undone.
+    </p>
+    <form method="post" action="/household/delete"
+          onsubmit="return confirm('Delete household “{{ user.display_name }}” and all related data? This cannot be undone.')">
+      <button type="submit"
+              class="bg-red-600 hover:bg-red-700 text-white font-medium px-5 py-2.5 rounded-lg">
+        Delete household
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

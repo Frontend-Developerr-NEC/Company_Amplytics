@@ -1,0 +1,41 @@
+{% extends "layout_auth.html" %}
+{% block title %}Sign in · Amplytics{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold text-slate-900 mb-4">Register a household</h1>
+<form method="post" action="/register" class="space-y-4">
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Household name</label>
+    <input name="display_name" required
+           class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Email (optional)</label>
+    <input name="email" type="email"
+           class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Household Members Size</label>
+    <input name="household_size" type="number" min="1" max="20" value="3"
+           class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+  </div>
+  <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg">
+    Create household
+  </button>
+</form>
+
+{% if households %}
+<div class="mt-8 pt-6 border-t border-slate-200">
+  <h2 class="text-sm font-medium text-slate-700 mb-3">Or switch to an existing household</h2>
+  <form method="post" action="/switch" class="flex gap-2">
+    <select name="uid" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+      {% for h in households %}
+      <option value="{{ h.user_id }}">{{ h.display_name }} ({{ h.user_id }})</option>
+      {% endfor %}
+    </select>
+    <button class="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-4 rounded-lg">
+      Switch
+    </button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

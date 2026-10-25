@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="app-shell flex min-h-screen">
+  <aside id="app-sidebar" class="app-sidebar w-64 fixed inset-y-0 left-0 flex flex-col">
+    <div class="app-brand">
+      <a href="/household" class="app-brand-link">
+        <span class="app-brand-mark" aria-hidden="true">A</span>
+        <span class="app-brand-name">Amplytics</span>
+      </a>
+      <p>Household energy, made clear</p>
+    </div>
+    <div class="app-nav-label">Workspace</div>
+    <nav class="app-nav flex-1 px-3 py-4 space-y-1" aria-label="Main navigation">
+      {% set items = [
+        ('/household', 'Household', 'M16 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2m6-10a4 4 0 100-8 4 4 0 000 8zm6-7a4 4 0 010 8m2 3h1a4 4 0 014 4v2'),
+        ('/billing', 'Billing period', 'M7 3v3m10-3v3M4 8h16M5 5h14a1 1 0 011 1v13H4V6a1 1 0 011-1zm3 7h3m-3 4h3m3-4h2m-2 4h2'),
+        ('/consumption', 'Daily consumption', 'M4 19V5m0 14h16M8 15l3-4 3 2 5-7'),
+        ('/dashboard', 'Dashboard', 'M4 13h7V4H4v9zm0 7h7v-5H4v5zm9 0h7v-9h-7v9zm0-16v5h7V4h-7z'),
+        ('/bill-estimator', 'Bill estimator', 'M13 2 4 14h7l-1 8 10-13h-7l1-7z'),
+        ('/model-benchmark', 'Model benchmark', 'M4 19h16M7 16V9m5 7V5m5 11v-4'),
+      ] %}
+      {% for href, label, icon_path in items %}
+        {% set active = request.url.path == href %}
+        <a href="{{ href }}"
+           class="app-nav-link {% if active %}is-active{% endif %}"
+           {% if active %}aria-current="page"{% endif %}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="{{ icon_path }}"/>
+          </svg>
+          <span>{{ label }}</span>
+        </a>
+      {% endfor %}
+    </nav>
+    <div class="app-sidebar-footer">
+      <label class="theme-toggle-sidebar">
+        <span class="theme-toggle-option theme-toggle-option--white">White</span>
+        <span class="theme-toggle-control">
+          <input class="theme-toggle-range" type="range" min="0" max="1" step="1" value="0"
+                 data-theme-toggle aria-label="Color theme" aria-valuetext="White theme">
+          <span class="theme-toggle-track" aria-hidden="true">
+            <span class="theme-toggle-stars"></span>
+            <span class="theme-toggle-thumb">
+              <svg class="theme-toggle-icon theme-toggle-icon--sun" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>
+              </svg>
+              <svg class="theme-toggle-icon theme-toggle-icon--moon" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/>
+              </svg>
+            </span>
+          </span>
+        </span>
+        <span class="theme-toggle-option theme-toggle-option--black">Black</span>
+      </label>
+      {% if current_user %}
+      <div class="app-user-card">
+        <span class="app-user-avatar" aria-hidden="true">{{ current_user.display_name[:1]|upper }}</span>
+        <div class="min-w-0">
+          <p class="app-user-name truncate">{{ current_user.display_name }}</p>
+          <p class="app-user-meta truncate">{{ current_user.household_size }} household member{{ "s" if current_user.household_size != 1 }}</p>
+        </div>
+      </div>
+      {% if households|length > 1 %}
+      <form method="post" action="/switch">
+        <select name="uid" onchange="this.form.submit()"
+                class="app-household-switch w-full text-sm rounded-lg px-2 py-1.5">
+          {% for h in households %}
+          <option value="{{ h.user_id }}" {% if h.user_id == current_user.user_id %}selected{% endif %}>
+            {{ h.display_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </form>
+      {% endif %}
+      <form method="post" action="/logout">
+        <button class="app-signout w-full text-sm px-3 py-2 rounded-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10 17l5-5-5-5m5 5H3m9-9h6a2 2 0 012 2v14a2 2 0 01-2 2h-6"/>
+          </svg>
+          Sign out
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </aside>
+  <button class="app-sidebar-overlay" type="button" aria-label="Close navigation" tabindex="-1"></button>
+
+  <main class="app-main flex-1 ml-64">
+    <div class="app-topbar px-8 py-4 flex items-center justify-between gap-3 flex-wrap">
+      <div class="app-topbar-leading flex items-center gap-3">
+        <button class="app-menu-toggle" type="button" aria-controls="app-sidebar" aria-expanded="false" aria-label="Open navigation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <div class="app-breadcrumb">
+          <span class="app-breadcrumb-muted">Amplytics</span>
+          <span class="app-breadcrumb-divider" aria-hidden="true">/</span>
+          <span>{% block breadcrumb %}Overview{% endblock %}</span>
+        </div>
+      </div>
+      <div class="app-topbar-meta">
+        <span class="app-status-dot" aria-hidden="true"></span>
+        <span>Household workspace</span>
+      </div>
+    </div>
+    <div class="app-content px-8 py-6 max-w-7xl mx-auto">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% block scripts %}{% endblock %}
+<script>
+  (() => {
+    const toggle = document.querySelector('.app-menu-toggle');
+    const overlay = document.querySelector('.app-sidebar-overlay');
+    const sidebar = document.querySelector('.app-sidebar');
+    const main = document.querySelector('.app-main');
+    if (!toggle || !overlay || !sidebar || !main) return;
+
+    toggle.addEventListener('click', () => {
+      const isOpen = document.body.classList.toggle('mobile-nav-open');
+      setMenuState(isOpen);
+      if (isOpen) sidebar.querySelector('nav a')?.focus();
+    });
+    overlay.addEventListener('click', closeMenu);
+    sidebar.querySelectorAll('nav a').forEach(link => link.addEventListener('click', closeMenu));
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeMenu();
+    });
+    function setMenuState(isOpen) {
+      const compact = window.matchMedia('(max-width: 1024px)').matches;
+      if (!compact) {
+        document.body.classList.remove('mobile-nav-open');
+        isOpen = false;
+      }
+      toggle.setAttribute('aria-expanded', String(isOpen));
+      toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+      sidebar.setAttribute('aria-hidden', String(compact && !isOpen));
+      sidebar.inert = compact && !isOpen;
+      main.inert = compact && isOpen;
+      overlay.setAttribute('aria-hidden', String(!compact || !isOpen));
+      overlay.tabIndex = compact && isOpen ? 0 : -1;
+    }
+    function closeMenu() {
+      const wasOpen = document.body.classList.contains('mobile-nav-open');
+      document.body.classList.remove('mobile-nav-open');
+      setMenuState(false);
+      if (wasOpen && window.matchMedia('(max-width: 1024px)').matches) {
+        toggle.focus();
+      }
+    }
+    setMenuState(false);
+    window.matchMedia('(max-width: 1024px)').addEventListener('change', closeMenu);
+  })();
+</script>
+{% endblock %}

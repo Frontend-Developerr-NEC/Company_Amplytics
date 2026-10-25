@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-theme="white">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Amplytics{% endblock %}</title>
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] } } } };
+  </script>
+  <script>
+    try {
+      const savedTheme = localStorage.getItem('amplytics-theme');
+      if (savedTheme === 'black' || savedTheme === 'white') {
+        document.documentElement.dataset.theme = savedTheme;
+      }
+    } catch (error) {
+      console.warn('Unable to load the saved theme preference.', error);
+    }
+  </script>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  {% block head %}{% endblock %}
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen is-online">
+
+  <!-- <div id="connection-banner" class="connection-banner" role="status" aria-live="polite" aria-hidden="true">
+    <svg class="connection-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728M5.636 5.636a9 9 0 000 12.728M15.536 8.464a5 5 0 010 7.072M8.464 8.464a5 5 0 000 7.072M12 12h.01"/>
+    </svg>
+    <p class="connection-banner__text">You're offline. Some actions won't work until you reconnect.</p>
+    <button type="button" id="connection-retry" class="connection-banner__retry">Retry</button>
+  </div> -->
+
+  {% if flash %}
+  <div class="flash-messages fixed top-4 right-4 z-50 space-y-2 w-96">
+    {% for m in flash %}
+    <div class="rounded-lg shadow-lg px-4 py-3 text-sm font-medium
+      {% if m.level == 'success' %}bg-emerald-600 text-white
+      {% elif m.level == 'error' %}bg-red-600 text-white
+      {% elif m.level == 'warning' %}bg-amber-500 text-white
+      {% else %}bg-slate-800 text-white{% endif %}">
+      {{ m.message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% block body %}{% endblock %}
+  <script src="/static/js/connection.js" defer></script>
+  <script src="/static/js/theme.js" defer></script>
+</body>
+
+</html>

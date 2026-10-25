@@ -1,0 +1,127 @@
+{% extends "layout_app.html" %}
+{% block title %}Daily consumption · Amplytics{% endblock %}
+{% block breadcrumb %}Daily consumption{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="consumption-period flex items-center gap-3">
+    <form method="get" action="/consumption" class="flex items-center gap-2">
+      <label class="text-sm text-slate-600">Billing period</label>
+      <select name="bp_id" onchange="this.form.submit()"
+              class="border rounded-lg px-3 py-2 bg-white text-sm">
+        {% for p in periods %}
+        <option value="{{ p.billing_period_id }}" {% if p.billing_period_id == selected.billing_period_id %}selected{% endif %}>
+          {{ p.period_start_date|billing_period_label(p.period_end_date) }}
+        </option>
+        {% endfor %}
+      </select>
+    </form>
+    <span class="text-sm text-slate-500">{{ selected.period_start_date }} → {{ selected.period_end_date }}</span>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+    <h2 class="font-semibold text-slate-900 mb-4">Record daily usage</h2>
+    <form method="post" action="/consumption/save"
+          data-period-start="{{ selected.period_start_date }}"
+          data-period-end="{{ selected.period_end_date }}"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+      <input type="hidden" name="bp_id" value="{{ selected.billing_period_id }}">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Date</label>
+        <input type="date" name="date_str" required
+               min="{{ selected.period_start_date }}" max="{{ selected.period_end_date }}"
+               value="{{ selected.period_start_date }}"
+               class="w-full rounded-lg border border-slate-300 px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Units (kWh)</label>
+        <input type="number" name="units" step="0.01" min="0" required
+               class="w-full rounded-lg border border-slate-300 px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Data type</label>
+        <select name="data_type" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+          <option value="measured">Measured</option>
+          <option value="estimated">Estimated</option>
+        </select>
+      </div>
+      <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg">
+        Save
+      </button>
+    </form>
+    <p class="text-xs text-slate-500 mt-3">
+      Saving a record updates cumulative usage, remaining target, allowance, and projections on the dashboard.
+      It does not retrain the ML models.
+    </p>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+  <h2 class="font-semibold text-slate-900 mb-1">Bulk import</h2>
+  <p class="text-sm text-slate-500 mb-4">
+    Import CSV, Excel (.xls or .xlsx), or JSON files. Required columns:
+    <code class="bg-slate-100 px-1 rounded">date</code>,
+    <code class="bg-slate-100 px-1 rounded">daily_units</code>,
+    <code class="bg-slate-100 px-1 rounded">data_type</code>.
+    JSON must be an array of objects or an object containing a
+    <code class="bg-slate-100 px-1 rounded">records</code> array.
+    Optional: <code class="bg-slate-100 px-1 rounded">input_method</code>
+    (defaults to <em>import</em>).
+    Re-importing a date <b>updates</b> the existing row — it never double-counts.
+  </p>
+  <form method="post" action="/consumption/import" enctype="multipart/form-data"
+        class="flex flex-wrap items-end gap-4">
+    <input type="hidden" name="bp_id" value="{{ selected.billing_period_id }}">
+    <div class="flex-1 min-w-[280px]">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Data file</label>
+      <input type="file" name="file"
+             accept=".csv,.xls,.xlsx,.json,text/csv,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+             required
+             class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white">
+    </div>
+    <button class="bg-slate-800 hover:bg-slate-900 text-white font-medium px-5 py-2.5 rounded-lg">
+      Import
+    </button>
+  </form>
+</div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="table-scroll">
+    <table class="responsive-table responsive-table--consumption w-full text-sm">
+      <thead class="bg-slate-50 text-slate-600 text-left text-xs uppercase tracking-wider">
+        <tr>
+          <th class="px-4 py-3">Date</th>
+          <th class="px-4 py-3 text-right">Units (kWh)</th>
+          <th class="px-4 py-3">Data type</th>
+          <th class="px-4 py-3">Input</th>
+          <th class="px-4 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in records %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-medium">{{ r.date }}</td>
+          <td class="px-4 py-3 text-right">{{ "%.2f"|format(r.daily_units) }}</td>
+          <td class="px-4 py-3">
+            {% if r.data_type == 'measured' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-800">measured</span>
+            {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">estimated</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-slate-600">{{ r.input_method }}</td>
+          <td class="px-4 py-3 text-right">
+            <form method="post" action="/consumption/delete" class="inline" onsubmit="return confirm('Delete this record?')">
+              <input type="hidden" name="bp_id" value="{{ r.billing_period_id }}">
+              <input type="hidden" name="date_str" value="{{ r.date }}">
+              <button class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">No records yet for this period.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

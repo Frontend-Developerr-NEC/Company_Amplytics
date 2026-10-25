@@ -1,0 +1,47 @@
+{
+  "trained_at": "2026-10-25T14:46:39+00:00",
+  "data_source": "synthetic",
+  "regressor": "HistGradientBoostingRegressor",
+  "classifier": "HistGradientBoostingClassifier",
+  "n_train_rows": 10424,
+  "n_production_train_rows": 13900,
+  "n_test_rows": 3476,
+  "n_train_periods": 2606,
+  "n_test_periods": 869,
+  "features": [
+    "target_units",
+    "period_days",
+    "elapsed_days",
+    "days_remaining",
+    "cumulative_units",
+    "average_daily_units",
+    "previous_period_units"
+  ],
+  "regression": {
+    "hist_gradient_boosting_regressor": {
+      "mae": 2832.3371342434602,
+      "rmse": 8392.21757438458
+    },
+    "baseline_projection": {
+      "mae": 2158.9321627805034,
+      "rmse": 6183.923337904873
+    }
+  },
+  "classification": {
+    "accuracy": 0.8889528193325662,
+    "precision": 0.9159456118665018,
+    "recall": 0.8556581986143187,
+    "f1": 0.8847761194029851,
+    "confusion_matrix": [
+      [
+        1608,
+        136
+      ],
+      [
+        250,
+        1482
+      ]
+    ]
+  },
+  "limitations": "Model trained on SYNTHETIC data. Metrics describe only this synthetic distribution. Do not present as real-world accuracy. Models are NOT retrained on user input; retraining is a separate process."
+}
